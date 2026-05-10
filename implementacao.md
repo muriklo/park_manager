@@ -4,12 +4,12 @@
 
 ## Ferramentas e Bibliotecas Utilizadas
 
-| Ferramenta | Versão | Propósito |
-|-----------|--------|----------|
-| **C++** | C++17 | Linguagem base do projeto |
-| **STL** | Standard Library | Estruturas de dados (vector, unordered_map, list) |
-| **Qt** | 5.x/6.x | Interface gráfica (GUI) |
-| **CMake** | 3.16+ | Sistema de build |
+| Ferramenta | Propósito |
+|-----------|----------|
+| **C++** | Linguagem base do projeto |
+| **STL** | Estruturas de dados (vector, unordered_map, list) |
+| **Qt** | Interface gráfica (GUI) |
+| **CMake**  | Sistema de build |
 
 ## Estrutura de Dados (STL - Componentes Principais)
 
