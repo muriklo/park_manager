@@ -2,13 +2,13 @@
      width="30%"
      style="padding: 10px">
 
-# << Título do projeto >>
+# Sistema de Gerenciamento de Estacionamento
 
-## << Descrição breve do domínio do problema >>
+## Controle em Tempo Real de Vagas e Tarifas
 
-> Repositório destinado para o desenvolvimento do projeto final da discipliana PRG22107 - Programação orienta a objeto. 
+> Repositório destinado para o desenvolvimento do projeto final da disciplina PRG22107 - Programação Orientada a Objeto.
 > 
-> Aluno: Nome do aluno  
+> Aluno: Aluno do Curso  
 > Professor: Hugo Marcondes
 
 <p align=center><strong>SUMÁRIO</strong></p>
