@@ -64,9 +64,9 @@ classDiagram
 
     Veiculo <|-- Carro
     Veiculo <|-- Moto
-    Estacionamento 1 *-- 1..* Vaga : composição
-    Vaga 1 --> 0..1 Veiculo : ponteiro
-    Estacionamento 1 o-- 0..* Transacao : histórico
+    Estacionamento 1 *-- 1..* Vaga : "composicao"
+    Vaga 1 --> 0..1 Veiculo : "ponteiro"
+    Estacionamento 1 o-- 0..* Transacao : "historico"
 ```
 
 ## Descrição das Classes
