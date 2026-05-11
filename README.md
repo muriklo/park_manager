@@ -8,7 +8,7 @@
 
 > Repositório destinado para o desenvolvimento do projeto final da disciplina PRG22107 - Programação Orientada a Objeto.
 > 
-> Aluno: Aluno do Curso  
+> Aluno: Murillo Ribeiro
 > Professor: Hugo Marcondes
 
 <p align=center><strong>SUMÁRIO</strong></p>
