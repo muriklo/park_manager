@@ -17,13 +17,12 @@ Quando um veículo entra, o sistema registra sua placa e tipo, encontra automati
 5. **Exibir um painel visual**, ou mapa de vagas, atualizado em tempo real.
 6. **Registrar transações financeiras** de saída, contendo placa, valor pago, data/hora e tempo de permanência.
 
-## Requisitos Não Funcionais
+## Características
 
-- **Performance:** a busca de veículos pela placa deve ser rápida, preferencialmente em tempo médio O(1).
-- **Usabilidade:** a interface deve ser simples, com formulário de placa/tipo e mapa visual colorido das vagas.
+- **Performance:** a busca de veículos pela placa deve ser rápida.
+- **Usabilidade:** a interface deve ser simples, com formulário de placa/tipo e mapa visual das vagas.
 - **Confiabilidade:** o sistema deve impedir entradas duplicadas, tratar estacionamento lotado e informar placas não encontradas.
 - **Manutenibilidade:** a modelagem deve deixar clara a separação de responsabilidades entre as diferentes classes como Veiculo, Vaga, Estacionamento e Transacao.
-- **Escalabilidade inicial:** o estacionamento deve suportar uma quantidade configurável de vagas, por exemplo 50 vagas.
 
 ## Ator Principal
 
@@ -40,7 +39,7 @@ Pessoa responsável por operar o sistema durante o expediente, registrando entra
 **Fluxo principal:**
 
 1. O operador informa a placa do veículo.
-2. O operador seleciona o tipo do veículo: Carro ou Moto.
+2. O operador seleciona o tipo do veículo (Carro ou Moto).
 3. O sistema verifica se a placa já está estacionada.
 4. O sistema procura a primeira vaga livre correspondente.
 5. O sistema cria o objeto Carro ou Moto.
