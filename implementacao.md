@@ -206,9 +206,9 @@ float Estacionamento::registrarSaida(const std::string& placa) {
 ### Métodos Auxiliares
 
 ```cpp
-int vagasLivres() const;              // Contagem rápida
-std::vector<bool> obterMapaVagas();   // Para GUI atualizar
-void gerarRelatorioTransacoes() const; // Histórico financeiro
+int vagasLivres() const;                // Contagem rápida
+std::vector<bool> obterMapaVagas();     // Update GUI
+void gerarRelatorioTransacoes() const;  // Histórico
 ```
 
 ---
