@@ -1,0 +1,132 @@
+</div>
+        plateInput->setPlaceholderText("Digite a placa");
+        
+        btnEntrada = new QPushButton("Registrar Entrada");
+        btnSaida = new QPushButton("Registrar Saída");
+        
+        labelStatus = new QLabel("Pronto");
+        labelVagasLivres = new QLabel();
+        
+        leftPanel->addWidget(new QLabel("Placa:"));
+        leftPanel->addWidget(plateInput);
+        leftPanel->addWidget(btnEntrada);
+        leftPanel->addWidget(btnSaida);
+        leftPanel->addWidget(new QLabel("Status:"));
+        leftPanel->addWidget(labelStatus);
+        leftPanel->addWidget(labelVagasLivres);
+        leftPanel->addStretch();
+        
+        // ===== PAINEL DIREITO (Mapa de Vagas) =====
+        QWidget* gridWidget = new QWidget();
+        gridLayout = new QGridLayout(gridWidget);
+        
+        // Criar 50 botões em grid 5 linhas x 10 colunas
+        for(int i = 0; i < 50; i++) {
+            QPushButton* btn = new QPushButton(QString::number(i + 1));
+            btn->setFixedSize(60, 60);
+            btn->setStyleSheet("background-color: green;");  // Verde = livre
+            vagasButtons.push_back(btn);
+            
+            int linha = i / 10;
+            int coluna = i % 10;
+            gridLayout->addWidget(btn, linha, coluna);
+        }
+        
+        // Adicionar painéis ao layout principal
+        mainLayout->addLayout(leftPanel, 1);  // Proporção 1:3
+        mainLayout->addWidget(gridWidget, 3);
+        
+        setCentralWidget(centralWidget);
+        setWindowTitle("Sistema de Estacionamento");
+        setGeometry(100, 100, 1200, 600);
+        
+        // Conectar sinais
+        connect(btnEntrada, &QPushButton::clicked, this, &MainWindow::onRegistrarEntrada);
+        connect(btnSaida, &QPushButton::clicked, this, &MainWindow::onRegistrarSaida);
+        
+        atualizarMapaVagas();
+    }
+    
+private slots:
+    void onRegistrarEntrada() {
+        QString placa = plateInput->text().toUpper();
+        if(placa.isEmpty()) {
+            labelStatus->setText("Digite uma placa!");
+            return;
+        }
+        
+        // Para exemplo, sempre Carro. Em produção, seria um combo
+        bool sucesso = estacionamento->registrarEntrada(placa.toStdString(), 0);
+        
+        if(sucesso) {
+            labelStatus->setText("Entrada registrada: " + placa);
+            plateInput->clear();
+        } else {
+            labelStatus->setText("ESTACIONAMENTO LOTADO!");
+        }
+        
+        atualizarMapaVagas();
+    }
+    
+    void onRegistrarSaida() {
+        QString placa = plateInput->text().toUpper();
+        if(placa.isEmpty()) {
+            labelStatus->setText("Digite uma placa!");
+            return;
+        }
+        
+        float valor = estacionamento->registrarSaida(placa.toStdString());
+        
+        if(valor < 0) {
+            labelStatus->setText("VEÍCULO NÃO ENCONTRADO!");
+        } else {
+            labelStatus->setText(QString::asprintf("Saída: R$ %.2f", valor));
+            plateInput->clear();
+        }
+        
+        atualizarMapaVagas();
+    }
+    
+    void atualizarMapaVagas() {
+        std::vector<bool> mapa = estacionamento->obterMapaVagas();
+        
+        for(int i = 0; i < 50; i++) {
+            if(mapa[i]) {
+                vagasButtons[i]->setStyleSheet("background-color: red;");  // Ocupada
+            } else {
+                vagasButtons[i]->setStyleSheet("background-color: green;");  // Livre
+            }
+        }
+        
+        int livres = estacionamento->vagasLivres();
+        labelVagasLivres->setText(QString("Vagas livres: %1/50").arg(livres));
+    }
+};
+```
+
+## Compilação (CMakeLists.txt)
+
+```cmake
+cmake_minimum_required(VERSION 3.16)
+project(EstacionamentoPOO)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+
+add_executable(estacionamento
+    main.cpp
+    veiculo.h
+    carro.h
+    moto.h
+    vaga.h
+    transacao.h
+    estacionamento.h
+    mainwindow.h
+    mainwindow.cpp
+)
+
+target_link_libraries(estacionamento Qt5::Core Qt5::Gui Qt5::Widgets)
+```

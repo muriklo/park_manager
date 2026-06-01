@@ -10,114 +10,98 @@ Quando um veículo entra, o sistema registra sua placa e tipo, encontra automati
 
 ## Requisitos Funcionais
 
-1. **Registrar entrada de veículos** informando placa e tipo: Carro ou Moto.
-2. **Alocar automaticamente** o veículo na primeira vaga livre correspondente ao seu tamanho/tipo.
-3. **Registrar saída do veículo** buscando-o pela placa.
-4. **Calcular automaticamente o valor da estadia** com tarifas diferentes para carros e motos, aplicando polimorfismo.
-5. **Exibir um painel visual**, ou mapa de vagas, atualizado em tempo real.
-6. **Registrar transações financeiras** de saída, contendo placa, valor pago, data/hora e tempo de permanência.
+1. **Registrar entrada** com placa e tipo de veículo
+2. **Alocar automaticamente** a primeira vaga compatível
+3. **Registrar saída** buscando o veículo pela placa
+4. **Calcular tarifa** com valores diferenciados (carro ≠ moto)
+5. **Exibir mapa visual** de vagas atualizado em tempo real
+6. **Manter histórico** de transações financeiras
 
-## Características
+## Requisitos Não-Funcionais
 
-- **Performance:** a busca de veículos pela placa deve ser rápida.
-- **Usabilidade:** a interface deve ser simples, com formulário de placa/tipo e mapa visual das vagas.
-- **Confiabilidade:** o sistema deve impedir entradas duplicadas, tratar estacionamento lotado e informar placas não encontradas.
-- **Manutenibilidade:** a modelagem deve deixar clara a separação de responsabilidades entre as diferentes classes como Veiculo, Vaga, Estacionamento e Transacao.
+| Critério | Detalhe |
+|----------|---------|
+| **Performance** | Busca de veículos deve ser instantânea (O(1)) |
+| **Usabilidade** | Interface simples com mapa visual intuitivo |
+| **Confiabilidade** | Validar duplicatas, estacionamento lotado, veículos inexistentes |
+| **Manutenibilidade** | Separação clara de responsabilidades entre classes |
+
+---
 
 ## Ator Principal
 
-### Operador do Estacionamento
-
-Pessoa responsável por operar o sistema durante o expediente, registrando entradas, saídas, cobranças e consultando o mapa de vagas.
+**Operador do Estacionamento** — Registra entradas/saídas, consulta vagas e cobra clientes.
 
 ## Casos de Uso Principais
 
-### 1. Cadastrar Entrada
+### UC1: Cadastrar Entrada
+**Objetivo:** Registrar a chegada de um veículo
 
-**Ator:** Operador do Estacionamento  
-**Objetivo:** Registrar a chegada de um carro ou moto no estacionamento  
-**Fluxo principal:**
+| Passo | Descrição |
+|-------|-----------|
+| 1 | Operador informa placa e tipo (Carro/Moto) |
+| 2 | Sistema valida se placa não está duplicada |
+| 3 | Sistema procura primeira vaga livre |
+| 4 | Sistema aloca veículo na vaga |
+| 5 | Mapa visual é atualizado |
 
-1. O operador informa a placa do veículo.
-2. O operador seleciona o tipo do veículo (Carro ou Moto).
-3. O sistema verifica se a placa já está estacionada.
-4. O sistema procura a primeira vaga livre correspondente.
-5. O sistema cria o objeto Carro ou Moto.
-6. O sistema aloca o veículo na vaga.
-7. O mapa visual de vagas é atualizado.
+**Exceções:** Estacionamento lotado | Veículo já estacionado
 
-**Fluxos alternativos:**
+### UC2: Registrar Saída
+**Objetivo:** Registrar saída e calcular cobrança
 
-- Se não houver vaga livre, o sistema exibe a mensagem "Estacionamento lotado".
-- Se a placa já estiver cadastrada, o sistema exibe a mensagem "Veículo já estacionado".
+| Passo | Descrição |
+|-------|-----------|
+| 1 | Operador informa placa |
+| 2 | Sistema localiza veículo (busca O(1)) |
+| 3 | Sistema calcula tempo de permanência |
+| 4 | **Polimorfismo:** Calcula tarifa conforme tipo |
+| 5 | Sistema libera vaga |
+| 6 | Registra transação (placa, valor, data/hora) |
+| 7 | Mapa visual é atualizado |
 
-### 2. Registrar Saída
+**Exceção:** Veículo não encontrado
 
-**Ator:** Operador do Estacionamento  
-**Objetivo:** Registrar a saída do veículo e calcular o valor a ser cobrado  
-**Fluxo principal:**
+### UC3: Consultar Mapa de Vagas
+**Objetivo:** Visualizar estado atual do estacionamento
 
-1. O operador informa a placa do veículo.
-2. O sistema busca a placa no controle interno.
-3. O sistema identifica a vaga ocupada pelo veículo.
-4. O sistema calcula o tempo de permanência.
-5. O sistema chama calcularTarifa() usando polimorfismo.
-6. O sistema libera a vaga.
-7. O sistema registra uma Transacao com placa, valor pago e data/hora.
-8. O sistema retorna o valor devido para o operador.
-9. O mapa visual de vagas é atualizado.
+Exibe grade com vagas em verde (livres) e vermelho (ocupadas), atualizada em tempo real.
 
-**Fluxo alternativo:**
-
-- Se a placa não for encontrada, o sistema exibe a mensagem **Veículo não encontrado**.
-
-### 3. Consultar Mapa de Vagas
-
-**Ator:** Operador do Estacionamento  
-**Objetivo:** Visualizar em tempo real o estado das vagas do estacionamento  
-**Fluxo principal:**
-
-1. O operador acessa a tela principal.
-2. O sistema exibe todas as vagas em formato de grade.
-3. Vagas livres aparecem em verde.
-4. Vagas ocupadas aparecem em vermelho.
-5. O painel é atualizado após cada entrada ou saída.
+---
 
 ## Diagrama de Casos de Uso
 
 ```mermaid
 graph TB
-    O[Operador do Estacionamento]
-    UC1[Cadastrar Entrada]
-    UC2[Registrar Saída e Gerar Cobrança]
-    UC3[Consultar Mapa de Vagas]
-    UC4[Consultar Histórico de Transações]
-    UC5[Alocar Vaga Livre]
-    UC6[Calcular Tarifa]
-    UC7[Liberar Vaga]
-    UC8[Salvar Transação]
-
+    O["👤 Operador do<br/>Estacionamento"]
+    UC1["Cadastrar<br/>Entrada"]
+    UC2["Registrar<br/>Saída"]
+    UC3["Consultar<br/>Mapa de Vagas"]
+    UC4["Consultar<br/>Histórico"]
+    
     O --> UC1
     O --> UC2
     O --> UC3
     O --> UC4
-    UC1 -. inclui .-> UC5
-    UC2 -. inclui .-> UC6
-    UC2 -. inclui .-> UC7
-    UC2 -. inclui .-> UC8
+    
+    UC1 -.Inclui.-> UC5["Validar Placa"]
+    UC1 -.Inclui.-> UC6["Alocar Vaga"]
+    UC2 -.Inclui.-> UC7["Calcular Tarifa"]
+    UC2 -.Inclui.-> UC8["Liberar Vaga"]
+    UC2 -.Inclui.-> UC9["Registrar<br/>Transação"]
 ```
 
-## Modelo Conceitual do Domínio
+## Modelo Conceitual
 
 ```mermaid
 erDiagram
-    ESTACIONAMENTO ||--o{ VAGA : contem
+    ESTACIONAMENTO ||--o{ VAGA : gerencia
     VAGA ||--o| VEICULO : ocupa
     VEICULO ||--o{ TRANSACAO : gera
 
     ESTACIONAMENTO {
         int capacidade
-        int vagasDisponiveis
+        int vagasLivres
     }
     VAGA {
         int numero
@@ -126,24 +110,28 @@ erDiagram
     VEICULO {
         string placa
         datetime horaEntrada
-        string tipo
+        enum tipo
     }
     TRANSACAO {
         string placa
-        float valorPago
+        float valor
         datetime dataHora
         int tempoMinutos
     }
 ```
 
-## Principais Classes Identificadas
+## Classes Identificadas
 
-- **Veiculo:** entidade abstrata que representa qualquer veículo estacionado.
-- **Carro:** especialização de Veiculo com tarifa própria.
-- **Moto:** especialização de Veiculo com tarifa própria.
-- **Vaga:** representa uma vaga física do estacionamento.
-- **Estacionamento:** controla vagas, entradas, saídas, buscas e histórico.
-- **Transacao:** registra a cobrança realizada na saída de um veículo.
+| Classe | Responsabilidade |
+|--------|------------------|
+| **Veiculo** (abstrata) | Define interface para cálculo de tarifa |
+| **Carro** | Especialização com tarifa própria |
+| **Moto** | Especialização com tarifa própria |
+| **Vaga** | Gerencia estado (livre/ocupada) |
+| **Estacionamento** | Coordena entradas, saídas, buscas e histórico |
+| **Transacao** | Registra cobranças (placa, valor, data/hora) |
+
+---
 
 <div align=center>
 
