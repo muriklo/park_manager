@@ -1,6 +1,6 @@
 # Implementação
 
-> Nota Importante: Este documento relata o processo de implementação do sistema utilizando C++, STL e Qt.
+> Nota Importante: Este documento relata o processo de implementação do sistema utilizando C++, STL e Qt, priorizando a simplicidade e a aplicação correta dos padrões de projeto.
 
 ## Ferramentas e Bibliotecas Utilizadas
 
@@ -15,127 +15,37 @@
 
 ## Estruturas de Dados (STL)
 
-A escolha das estruturas de dados corretas foi fundamental para garantir que o sistema não apenas funcione, mas seja rápido e seguro. 
+A escolha correta das estruturas de dados garantiu segurança e previsibilidade na alocação da memória:
 
-### 1. O Pátio Físico (`std::array`)
-
-```cpp
-std::array<Vaga, 80> vagas;  // 50 vagas para Carros e 30 para Motos
-```
-
-**Por que escolhemos o array estático?** 
-Sabemos que o estacionamento tem um limite físico exato de 80 vagas que não mudará durante a execução. O uso de um `std::array` garante que os endereços de memória de cada vaga sejam fixos. Isso evita problemas graves, como ponteiros apontando para locais vazios (dangling pointers), e permite acesso imediato a qualquer vaga de forma previsível.
-
-### 2. Busca Instantânea de Veículos (`std::unordered_map`)
-
-```cpp
-std::unordered_map<std::string, Vaga*> placaParaVaga;
-```
-
-**O problema resolvido:**
-Buscar um carro estacionado olhando vaga por vaga resultaria em uma operação lenta (O(n)), o que seria prejudicial em momentos de alto fluxo.
-
-**A solução:**
-O `unordered_map` funciona como uma tabela de espalhamento (hash). Ao registrar uma placa, o sistema guarda a referência exata de onde aquele veículo está parado. Quando o cliente vai embora, a busca pela placa leva um tempo constante de O(1), ou seja, é instantânea.
-
-### 3. Histórico de Transações (`std::list`)
-
-```cpp
-std::list<Transacao> transacoes;
-```
-
-**Benefício:** Inserção O(1) nas extremidades, ideal para histórico de cobranças.
-
-### 4. Gestão de Clientes Mensalistas (`std::unordered_map`)
-
-```cpp
-std::unordered_map<std::string, Cliente*> clientesMensalistas;
-```
-
-**A vantagem do isolamento:**
-Separamos o controle de assinaturas do controle físico das vagas. Assim, pelo simples fato de informar a placa, o sistema consegue consultar este mapa em tempo O(1) e descobrir instantaneamente se o veículo pertence a um mensalista e quanto saldo de horas ele ainda possui.
+- **Array Estático (`std::array`):** Utilizado para o pátio físico do estacionamento, garantindo limite exato de 80 vagas. Isso previne ponteiros perdidos e permite acesso direto a cada posição.
+- **Tabelas de Espalhamento (`std::unordered_map`):** Utilizadas para busca instantânea (O(1)) de veículos estacionados através da placa e para isolar o cadastro de clientes mensalistas do controle físico de vagas.
+- **Listas (`std::list`):** Utilizada para o histórico de transações, permitindo inserções rápidas nas extremidades do registro (O(1)).
 
 ---
 
 ## Arquitetura de Classes
 
-Para lidar com diferentes tipos de veículos e formas de cobrança sem criar um código complexo e difícil de manter, aplicamos conceitos clássicos de Orientação a Objetos.
+Para suportar diferentes formas de cobrança e tipos de veículos sem aumentar a complexidade condicional, a arquitetura foi desenhada em torno do Polimorfismo.
 
-### Hierarquia de Veículos e Polimorfismo
+### Hierarquia de Veículos
 
-Criamos uma classe base abstrata chamada `Veiculo`. Dela, derivamos `Carro` e `Moto`.
+A classe base abstrata `Veiculo` concentra os dados comuns (placa e horário de entrada). As filhas `Carro` e `Moto` sobrescrevem o método de cálculo de tarifa, sendo que a `Moto` sabe identificar internamente se está estacionada de forma padrão ou ocupando uma vaga de carro (fallback) para aplicar a tarifa correta.
 
-```cpp
-// Classe base abstrata
-class Veiculo {
-protected:
-    std::string placa;
-    std::chrono::system_clock::time_point horaEntrada;
-    
-public:
-    virtual ~Veiculo() = default;
-    virtual float calcularTarifa(int tempoMinutos) = 0;
-};
+### O Gerenciador: Classe Estacionamento
 
-// Especialização: Carro
-class Carro : public Veiculo {
-public:
-    float calcularTarifa(int tempoMinutos) override {
-        return (tempoMinutos / 60.0f) * 5.0f; // R$ 5,00 por hora
-    }
-};
+A classe `Estacionamento` orquestra o ciclo de vida das operações. Suas etapas são definidas de forma simplificada:
 
-// Especialização: Moto
-class Moto : public Veiculo {
-private:
-    bool paradaNaVagaDeCarro; // Controle de fallback
-public:
-    Moto(const std::string& p, bool fallbackTarifa = false) : 
-        Veiculo(p), paradaNaVagaDeCarro(fallbackTarifa) {}
-
-    float calcularTarifa(int tempoMinutos) override {
-        float horas = tempoMinutos / 60.0f;
-        return paradaNaVagaDeCarro ? horas * 5.0f : horas * 2.0f;
-    }
-};
-```
-
-**A beleza do Polimorfismo:** 
-O sistema principal, ao registrar a saída, não precisa testar se o veículo é um carro ou uma moto. Ele simplesmente chama o método `calcularTarifa()` e a própria instância do veículo calcula e devolve o valor correto. Além disso, a classe `Moto` sabe se deve cobrar o valor normal ou o valor estendido, caso tenha ocupado uma vaga de carro por falta de espaço.
-
----
-
-## O Gerenciador: Classe Estacionamento
-
-A classe `Estacionamento` é o núcleo que orquestra todas as partes do sistema. Abaixo, descrevemos o ciclo de vida de uma operação padrão.
-
-### Entrada de Veículos
-
-1. **Busca Inteligente:** Utilizamos o padrão Strategy (`EstrategiaAlocacao`) para procurar no array a primeira vaga livre apropriada ao tipo do veículo.
-2. **Criação e Fallback:** O veículo é instanciado de acordo com seu tipo. Se uma moto precisar ocupar uma vaga de carro devido à lotação (fallback), o construtor da moto é avisado para reajustar suas regras de tarifa.
-3. **Sincronização:** O veículo é alocado na vaga física escolhida e também é registrado no mapa rápido (`placaParaVaga`) para garantir buscas ágeis na saída.
-
-### Saída de Veículos
-
-1. **Localização Rápida:** A placa digitada é consultada no mapa de veículos ativos, e a vaga é identificada de forma instantânea.
-2. **Resolução de Tarifas:** O sistema verifica se a placa pertence a um mensalista. Utilizando novamente o padrão Strategy (`TarifaVeiculo`), ele decide de forma limpa se irá descontar horas do saldo do cliente ou realizar uma cobrança em dinheiro.
-3. **Finalização:** A vaga é desocupada, o objeto do veículo é removido da memória (`delete` para prevenir memory leaks) e um comprovante é adicionado ao histórico de transações.
+1. **Entrada:** A regra de alocação de vaga delega a decisão para uma estratégia independente (padrão Strategy). Ao instanciar o veículo correto, ele é posicionado na vaga selecionada e indexado na tabela de espalhamento para rápida recuperação futura.
+2. **Saída:** Após localizar o veículo no mapa, a orquestração resolve a tarifa (comum ou assinatura) aplicando o polimorfismo correto. Finalmente, a memória dinâmica é liberada, a vaga fica livre novamente e a transação financeira é registrada.
 
 ---
 
 ## Interface Gráfica com Qt
 
-A interface do usuário foi construída para fornecer feedback visual em tempo real, facilitando a vida do operador.
+A interface fornece uma visão geral do pátio em tempo real:
 
-### Estrutura Visual
-
-- **Painel de Controle (Esquerda):** Agrupa os controles interativos: campos de texto para digitar a placa, seleção do tipo do veículo e os botões de execução de entrada e saída.
-- **Mapa do Pátio (Direita):** Uma grade (QGridLayout) que representa o estado físico real das 80 vagas do estacionamento. Cada posição se atualiza de acordo com os seguintes estados:
-  - **Verde:** Vaga disponível para uso.
-  - **Vermelho:** Vaga ocupada de forma padrão.
-  - **Amarelo:** Vaga ocupada com regras de fallback (ex: moto ocupando um espaço destinado a carros).
-
-Toda vez que uma operação de entrada ou saída ocorre, a interface redesenha o mapa refletindo as modificações da memória no mesmo instante.
+- **Painel de Controle:** Responsável pelas entradas textuais (placa) e seleção do tipo de veículo, além de acionar as lógicas de entrada e saída.
+- **Mapa Visual:** Uma grade dinâmica reflete a memória física: vagas verdes (livres), vermelhas (ocupadas regularmente) e amarelas (ocupadas por fallback). A atualização da tela é imediatamente acionada após cada transação no estacionamento.
 
 ---
 
@@ -143,10 +53,28 @@ Toda vez que uma operação de entrada ou saída ocorre, a interface redesenha o
 
 | Conceito | Implementação |
 |----------|---------------|
-| **Encapsulamento** | Ocultamos o estado das vagas e dos veículos em propriedades privadas, exigindo que qualquer alteração seja feita por métodos seguros e validados. |
-| **Polimorfismo** | Funções chave, como `calcularTarifa()`, adaptam perfeitamente seu comportamento em tempo de execução, dependendo de qual objeto as executa. |
-| **Herança** | Extraímos propriedades comuns, como placa e horário, para a classe `Veiculo`, eliminando a duplicação de código nas classes derivadas. |
-| **Performance e Segurança** | O uso inteligente de Hash Maps e Arrays garante que a aplicação mantenha uma complexidade de busca ótima (O(1)), prevenindo gargalos. |
+| **Encapsulamento** | Oculta e protege o estado interno das vagas e veículos, forçando alterações via métodos seguros. |
+| **Polimorfismo** | Funções de cálculo de tarifas se autoajustam conforme a instância do veículo, eliminando verificações manuais de tipo. |
+| **Herança** | Propriedades vitais (como a data de entrada) ficam no nível-mãe, cortando código duplicado. |
+| **Performance e Segurança** | O pareamento de Arrays e Hash Maps mantém todas as operações de busca constantes, prevenindo lentidão com pátios cheios. |
+
+---
+
+## Justificativas de Design (SOLID)
+
+- **Princípio da Responsabilidade Única (SRP):** A separação entre veículo e cliente garante que propriedades financeiras (saldo de assinaturas) fiquem em objetos independentes da lógica de armazenamento físico do carro.
+- **Princípio Aberto/Fechado (OCP):** A tarifação ocorre por polimorfismo em vez de condicionais (`if/else`). Novas modalidades de cobrança podem ser adicionadas criando classes separadas, mantendo o sistema existente inalterado.
+
+## Padrões de Projeto Adicionais
+
+- **Strategy:** Permite definir ou trocar a regra para localização de vagas vazias dinamicamente (Primeira livre, Próxima à entrada, Exclusiva para mensalistas, etc).
+- **Template Method e Decorator:** Aplicáveis como camadas adicionais na alocação de vagas para centralizar passos sequenciais comuns ou adicionar restrições (ex: vagas para deficientes).
+- **Observer:** Estruturado para lidar com eventos colaterais de forma desacoplada, emitindo sinais de saldo baixo sem poluir a lógica de estacionamento.
+
+## Funcionalidades Práticas
+
+- **Relatórios:** Mecanismo padronizado de verificação que confere horas consumidas e saldo ainda ativo de clientes.
+- **Testes Unitários:** Isola comportamentos específicos, testando se cálculos de redução de mensalidade e locação de índice no array funcionam de maneira robusta.
 
 ---
 
