@@ -15,32 +15,30 @@
 
 ## Estruturas de Dados (STL)
 
-### 1. Vector de Vagas — O Pátio Físico
+A escolha das estruturas de dados corretas foi fundamental para garantir que o sistema não apenas funcione, mas seja rápido e seguro. 
+
+### 1. O Pátio Físico (`std::array`)
 
 ```cpp
-std::vector<Vaga> vagas;  // 50 vagas do estacionamento
+std::array<Vaga, 80> vagas;  // 50 vagas para Carros e 30 para Motos
 ```
 
-**Por que?** Acesso direto por índice, para encontrar primeira vaga livre.
+**Por que escolhemos o array estático?** 
+Sabemos que o estacionamento tem um limite físico exato de 80 vagas que não mudará durante a execução. O uso de um `std::array` garante que os endereços de memória de cada vaga sejam fixos. Isso evita problemas graves, como ponteiros apontando para locais vazios (dangling pointers), e permite acesso imediato a qualquer vaga de forma previsível.
 
-### 2️. Unordered_Map — Busca Instantânea
+### 2. Busca Instantânea de Veículos (`std::unordered_map`)
 
 ```cpp
 std::unordered_map<std::string, Vaga*> placaParaVaga;
 ```
 
-**Problema resolvido:** Sem este mapa, buscar um carro pela placa seria O(n).  
-**Solução:** Busca hash em O(1) — praticamente instantânea!
+**O problema resolvido:**
+Buscar um carro estacionado olhando vaga por vaga resultaria em uma operação lenta (O(n)), o que seria prejudicial em momentos de alto fluxo.
 
-```cpp
-// Entrada: ABC-1234 entra na Vaga 5
-placaParaVaga["ABC-1234"] = &vagas[5];
+**A solução:**
+O `unordered_map` funciona como uma tabela de espalhamento (hash). Ao registrar uma placa, o sistema guarda a referência exata de onde aquele veículo está parado. Quando o cliente vai embora, a busca pela placa leva um tempo constante de O(1), ou seja, é instantânea.
 
-// Saída: Encontrar ABC-1234 instantaneamente
-Vaga* vaga = placaParaVaga["ABC-1234"];  // O(1)
-```
-
-### 3. List para Histórico — Transações
+### 3. Histórico de Transações (`std::list`)
 
 ```cpp
 std::list<Transacao> transacoes;
@@ -48,19 +46,24 @@ std::list<Transacao> transacoes;
 
 **Benefício:** Inserção O(1) nas extremidades, ideal para histórico de cobranças.
 
+### 4. Gestão de Clientes Mensalistas (`std::unordered_map`)
+
+```cpp
+std::unordered_map<std::string, Cliente*> clientesMensalistas;
+```
+
+**A vantagem do isolamento:**
+Separamos o controle de assinaturas do controle físico das vagas. Assim, pelo simples fato de informar a placa, o sistema consegue consultar este mapa em tempo O(1) e descobrir instantaneamente se o veículo pertence a um mensalista e quanto saldo de horas ele ainda possui.
+
 ---
 
-## Polimorfismo: A Chave do Design
+## Arquitetura de Classes
 
-### Hierarquia de Classes
+Para lidar com diferentes tipos de veículos e formas de cobrança sem criar um código complexo e difícil de manter, aplicamos conceitos clássicos de Orientação a Objetos.
 
-```
-Veiculo (abstrato)
-  ├── Carro (tarifa: R$ 5.00/hora)
-  └── Moto (tarifa: R$ 2.00/hora)
-```
+### Hierarquia de Veículos e Polimorfismo
 
-### Implementação
+Criamos uma classe base abstrata chamada `Veiculo`. Dela, derivamos `Carro` e `Moto`.
 
 ```cpp
 // Classe base abstrata
@@ -71,190 +74,79 @@ protected:
     
 public:
     virtual ~Veiculo() = default;
-    virtual float calcularTarifa(int tempoMinutos) = 0;  // Puro
-    std::string obterPlaca() const { return placa; }
+    virtual float calcularTarifa(int tempoMinutos) = 0;
 };
 
 // Especialização: Carro
 class Carro : public Veiculo {
 public:
     float calcularTarifa(int tempoMinutos) override {
-        float horas = tempoMinutos / 60.0f;
-        return horas * 5.0f;  // R$ 5 por hora
+        return (tempoMinutos / 60.0f) * 5.0f; // R$ 5,00 por hora
     }
 };
 
 // Especialização: Moto
 class Moto : public Veiculo {
+private:
+    bool paradaNaVagaDeCarro; // Controle de fallback
 public:
+    Moto(const std::string& p, bool fallbackTarifa = false) : 
+        Veiculo(p), paradaNaVagaDeCarro(fallbackTarifa) {}
+
     float calcularTarifa(int tempoMinutos) override {
         float horas = tempoMinutos / 60.0f;
-        return horas * 2.0f;  // R$ 2 por hora
+        return paradaNaVagaDeCarro ? horas * 5.0f : horas * 2.0f;
     }
 };
 ```
 
-**Vantagem:** Mesmo método `calcularTarifa()` comporta-se diferente conforme o tipo.
+**A beleza do Polimorfismo:** 
+O sistema principal, ao registrar a saída, não precisa testar se o veículo é um carro ou uma moto. Ele simplesmente chama o método `calcularTarifa()` e a própria instância do veículo calcula e devolve o valor correto. Além disso, a classe `Moto` sabe se deve cobrar o valor normal ou o valor estendido, caso tenha ocupado uma vaga de carro por falta de espaço.
 
 ---
 
-## Classes Principais
+## O Gerenciador: Classe Estacionamento
 
-### Vaga
+A classe `Estacionamento` é o núcleo que orquestra todas as partes do sistema. Abaixo, descrevemos o ciclo de vida de uma operação padrão.
 
-```cpp
-class Vaga {
-private:
-    int numero;
-    bool ocupada;
-    Veiculo* veiculo;
-    
-public:
-    void alocar(Veiculo* v);
-    void liberar();
-    bool estaOcupada() const;
-    Veiculo* getVeiculo() const;
-};
-```
+### Entrada de Veículos
 
-**Responsabilidade:** Gerenciar o estado (livre/ocupada) de uma vaga.
+1. **Busca Inteligente:** Utilizamos o padrão Strategy (`EstrategiaAlocacao`) para procurar no array a primeira vaga livre apropriada ao tipo do veículo.
+2. **Criação e Fallback:** O veículo é instanciado de acordo com seu tipo. Se uma moto precisar ocupar uma vaga de carro devido à lotação (fallback), o construtor da moto é avisado para reajustar suas regras de tarifa.
+3. **Sincronização:** O veículo é alocado na vaga física escolhida e também é registrado no mapa rápido (`placaParaVaga`) para garantir buscas ágeis na saída.
 
-### Transacao
+### Saída de Veículos
 
-```cpp
-class Transacao {
-private:
-    std::string placa;
-    float valorPago;
-    std::chrono::system_clock::time_point dataHora;
-    
-public:
-    Transacao(const std::string& p, float v, const auto& dt);
-    void exibir() const;  // Placa | Valor | Data/Hora
-};
-```
-
-**Responsabilidade:** Registrar cobranças.
+1. **Localização Rápida:** A placa digitada é consultada no mapa de veículos ativos, e a vaga é identificada de forma instantânea.
+2. **Resolução de Tarifas:** O sistema verifica se a placa pertence a um mensalista. Utilizando novamente o padrão Strategy (`TarifaVeiculo`), ele decide de forma limpa se irá descontar horas do saldo do cliente ou realizar uma cobrança em dinheiro.
+3. **Finalização:** A vaga é desocupada, o objeto do veículo é removido da memória (`delete` para prevenir memory leaks) e um comprovante é adicionado ao histórico de transações.
 
 ---
 
-## Classe Estacionamento — Manager
+## Interface Gráfica com Qt
 
-Gerencia todo o fluxo e mantém as estruturas de dados sincronizadas.
+A interface do usuário foi construída para fornecer feedback visual em tempo real, facilitando a vida do operador.
 
-### Entrada de Veículo
+### Estrutura Visual
 
-```cpp
-bool Estacionamento::registrarEntrada(const std::string& placa, int tipo) {
-    // 1. Encontrar primeira vaga livre
-    Vaga* vagaLivre = nullptr;
-    for(auto& vaga : vagas) {
-        if(!vaga.estaOcupada()) {
-            vagaLivre = &vaga;
-            break;
-        }
-    }
-    
-    if(!vagaLivre) return false;  // Lotado
-    
-    // 2. Polimorfismo: criar tipo correto
-    Veiculo* veiculo = (tipo == 0) ? 
-        new Carro(placa) : new Moto(placa);
-    
-    // 3. Alocar e registrar no mapa
-    vagaLivre->alocar(veiculo);
-    placaParaVaga[placa] = vagaLivre;
-    
-    return true;
-}
-```
+- **Painel de Controle (Esquerda):** Agrupa os controles interativos: campos de texto para digitar a placa, seleção do tipo do veículo e os botões de execução de entrada e saída.
+- **Mapa do Pátio (Direita):** Uma grade (QGridLayout) que representa o estado físico real das 80 vagas do estacionamento. Cada posição se atualiza de acordo com os seguintes estados:
+  - **Verde:** Vaga disponível para uso.
+  - **Vermelho:** Vaga ocupada de forma padrão.
+  - **Amarelo:** Vaga ocupada com regras de fallback (ex: moto ocupando um espaço destinado a carros).
 
-**Fluxo:** Valida → Aloca → Sincroniza mapa → Retorna sucesso
-
-### Saída de Veículo
-
-```cpp
-float Estacionamento::registrarSaida(const std::string& placa) {
-    // 1. Busca O(1) no mapa
-    auto it = placaParaVaga.find(placa);
-    if(it == placaParaVaga.end()) return -1.0f;  // Não encontrado
-    
-    Vaga* vaga = it->second;
-    Veiculo* veiculo = vaga->getVeiculo();
-    
-    // 2. Calcular tempo
-    auto duracao = std::chrono::duration_cast<std::chrono::minutes>
-                  (agora - veiculo->getHoraEntrada());
-    
-    // 3. Polimorfismo: tarifa automática conforme tipo!
-    float valor = veiculo->calcularTarifa(duracao.count());
-    
-    // 4. Limpar estruturas
-    vaga->liberar();
-    delete veiculo;
-    placaParaVaga.erase(placa);
-    
-    // 5. Registrar transação
-    transacoes.push_back(Transacao(placa, valor, agora));
-    
-    return valor;
-}
-```
-
-**Fluxo:** Busca → Calcula → Libera → Registra → Retorna valor
-
-### Métodos Auxiliares
-
-```cpp
-int vagasLivres() const;                // Contagem rápida
-std::vector<bool> obterMapaVagas();     // Update GUI
-void gerarRelatorioTransacoes() const;  // Histórico
-```
+Toda vez que uma operação de entrada ou saída ocorre, a interface redesenha o mapa refletindo as modificações da memória no mesmo instante.
 
 ---
 
-## Interface Gráfica (Qt)
-
-### Layout Principal
-
-```
-┌─────────────────────────────────────┐
-│    GERENCIADOR DE ESTACIONAMENTO    │
-├─────────────────┬───────────────────┤
-│  CONTROLE       │   MAPA DE VAGAS   │
-│  ┌───────────┐  │   ┌─┬─┬─┬─┬─┐     │
-│  │ Placa: __ │  │   ├─┼─┼─┼─┼─┤     │ 
-│  │ Tipo: []  │  │   ├─┼─┼─┼─┼─┤     │
-│  │ [Entrada] │  │   └─┴─┴─┴─┴─┘     │
-│  │ [Saída]   │  │                   │
-│  │           │  │   Verde = Livre   │
-│  │ Status:   │  │Vermelho = Ocupado |
-│  │ Vagas: 25 │  │                   │
-│  └───────────┘  │                   │
-└─────────────────┴───────────────────┘
-```
-
-### Componentes
-
-- **QLineEdit** — Entrada de placa
-- **QPushButton** — Botões (Entrada/Saída)
-- **QGridLayout** — 5×10 grid para vagas
-- **QLabel** — Status e contador
-- **QTableWidget** — Histórico
-
-**Atualização:** Após cada operação, o mapa é redesenhado via `update()`.
-
----
-
-## Conceitos Chave
+## Resumo dos Princípios Adotados
 
 | Conceito | Implementação |
 |----------|---------------|
-| **Encapsulamento** | Atributos privados, acesso via getters/setters |
-| **Polimorfismo** | `calcularTarifa()` virtual — cada tipo tem seu cálculo |
-| **Herança** | Carro e Moto herdam de Veiculo |
-| **Abstração** | Classe Veiculo define contrato, não instanciação direta |
-| **Performance** | Hash map garante buscas instantâneas mesmo com 1000s de registros |
+| **Encapsulamento** | Ocultamos o estado das vagas e dos veículos em propriedades privadas, exigindo que qualquer alteração seja feita por métodos seguros e validados. |
+| **Polimorfismo** | Funções chave, como `calcularTarifa()`, adaptam perfeitamente seu comportamento em tempo de execução, dependendo de qual objeto as executa. |
+| **Herança** | Extraímos propriedades comuns, como placa e horário, para a classe `Veiculo`, eliminando a duplicação de código nas classes derivadas. |
+| **Performance e Segurança** | O uso inteligente de Hash Maps e Arrays garante que a aplicação mantenha uma complexidade de busca ótima (O(1)), prevenindo gargalos. |
 
 ---
 

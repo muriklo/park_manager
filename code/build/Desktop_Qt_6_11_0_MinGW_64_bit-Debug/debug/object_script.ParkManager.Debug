@@ -1,0 +1,12 @@
+debug/main.o
+debug/MainWindow.o
+debug/Estacionamento.o
+debug/Transacao.o
+debug/Carro.o
+debug/Moto.o
+debug/Veiculo.o
+debug/EstrategiaAlocacao.o
+debug/Assinatura.o
+debug/Cliente.o
+debug/TarifaVeiculo.o
+debug/moc_MainWindow.o
