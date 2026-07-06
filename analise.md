@@ -84,23 +84,10 @@ usecase "Registrar Saída" as UC2
 usecase "Consultar Mapa de Vagas" as UC3
 usecase "Consultar Histórico" as UC4
 
-usecase "Validar Placa" as UC5
-usecase "Alocar Vaga" as UC6
-usecase "Calcular Tarifa" as UC7
-usecase "Liberar Vaga" as UC8
-usecase "Registrar Transação" as UC9
-
 O -- UC1
 O -- UC2
 O -- UC3
 O -- UC4
-
-UC1 ..> UC5 : <<include>>
-UC1 ..> UC6 : <<include>>
-
-UC2 ..> UC7 : <<include>>
-UC2 ..> UC8 : <<include>>
-UC2 ..> UC9 : <<include>>
 
 @enduml
 ```
