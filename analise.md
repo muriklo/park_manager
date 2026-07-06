@@ -71,14 +71,14 @@ Exibe grade com vagas em verde (livres) e vermelho (ocupadas), atualizada em tem
 
 ---
 
-<img src="use_case.png"
+<img src="img/use_case.png"
      width="100%"
      style="padding: 2px">
 
 
 ## Diagrama de Classes (Modelo Conceitual)
 
-<img src="class_diagram.png"
+<img src="img/class_diagram.png"
      width="100%"
      style="padding: 2px">
 
