@@ -92,45 +92,102 @@ O -- UC4
 @enduml
 ```
 
-## Modelo Conceitual
+## Diagrama de Classes (Modelo Conceitual)
 
 ```plantuml
 @startuml
-class CLIENTE {
-    -placa: string
-    -nome: string
-    -isMensalista: boolean
-}
-class ASSINATURA {
-    -horasDisponiveis: int
-    -horasUsadas: int
-}
-class ESTACIONAMENTO {
-    -capacidade: int
-    -vagasLivres: int
-}
-class VAGA {
-    -numero: int
-    -tipoVaga: int
-    -ocupada: boolean
-}
-class VEICULO {
-    -placa: string
-    -horaEntrada: datetime
-    -tarifaDeCarro: boolean
-}
-class TRANSACAO {
-    -placa: string
-    -valor: float
-    -dataHora: datetime
-    -tempoMinutos: int
+skinparam classAttributeIconSize 0
+
+abstract class Veiculo {
+  # placa : string
+  # horaEntrada : time_point
+  + calcularTarifa(tempoMinutos: int) : float
+  + obterTipo() : string
 }
 
-ESTACIONAMENTO "1" *-- "1..*" VAGA : gerencia
-ESTACIONAMENTO "1" o-- "*" CLIENTE : possui
-CLIENTE "1" *-- "1" ASSINATURA : tem
-VAGA "1" o-- "0..1" VEICULO : ocupa
-VEICULO "1" <-- "*" TRANSACAO : gera
+class Carro {
+  + calcularTarifa(tempoMinutos: int) : float
+  + obterTipo() : string
+}
+
+class Moto {
+  - tarifaDeCarro : bool
+  + calcularTarifa(tempoMinutos: int) : float
+  + obterTipo() : string
+}
+
+Veiculo <|-- Carro
+Veiculo <|-- Moto
+
+class Vaga {
+  - numero : int
+  - tipoVaga : int
+  - ocupada : bool
+  + alocar(v: Veiculo)
+  + liberar() : Veiculo
+}
+
+Vaga o-- "0..1" Veiculo : veiculo
+
+abstract class EstrategiaAlocacao {
+  + encontrarVaga(vagas: array, placa: string, tipo: int) : Vaga
+}
+
+class EstrategiaVagaLivre {
+  + encontrarVaga(vagas: array, placa: string, tipo: int) : Vaga
+}
+
+EstrategiaAlocacao <|-- EstrategiaVagaLivre
+
+class Assinatura {
+  - tipo : Plano
+  - horasDisponiveis : int
+  - horasUsadas : int
+  + consumirHoras(horas: int)
+}
+
+class Cliente {
+  - placa : string
+  - nome : string
+  - isMensalista : bool
+}
+
+Cliente *-- "1" Assinatura : assinatura
+
+abstract class TarifaVeiculo {
+  + calcularCusto(tempoMinutos: int) : float
+}
+
+class TarifaComum {
+  - taxaHora : float
+  + calcularCusto(tempoMinutos: int) : float
+}
+
+class TarifaMensalista {
+  + calcularCusto(tempoMinutos: int) : float
+}
+
+TarifaVeiculo <|-- TarifaComum
+TarifaVeiculo <|-- TarifaMensalista
+TarifaMensalista --> "1" Cliente : cliente
+
+class Transacao {
+  - placa : string
+  - tipoVeiculo : string
+  - valorPago : float
+  - tempoMinutos : int
+}
+
+class Estacionamento {
+  + entradaVeiculo(placa: string, tipo: int) : string
+  + saidaVeiculo(placa: string) : string
+}
+
+Estacionamento *-- "80" Vaga : vagas
+Estacionamento *-- "1" EstrategiaAlocacao : estrategia
+Estacionamento *-- "*" Cliente : mensalistas
+Estacionamento *-- "*" Transacao : transacoes
+
 @enduml
 ```
 
