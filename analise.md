@@ -71,125 +71,16 @@ Exibe grade com vagas em verde (livres) e vermelho (ocupadas), atualizada em tem
 
 ---
 
-## Diagrama de Casos de Uso
+<img src="use_case.png"
+     width="100%"
+     style="padding: 2px">
 
-```plantuml
-@startuml
-left to right direction
-
-actor "Operador do\nEstacionamento" as O
-
-usecase "Cadastrar Entrada" as UC1
-usecase "Registrar Saída" as UC2
-usecase "Consultar Mapa de Vagas" as UC3
-usecase "Consultar Histórico" as UC4
-
-O -- UC1
-O -- UC2
-O -- UC3
-O -- UC4
-
-@enduml
-```
 
 ## Diagrama de Classes (Modelo Conceitual)
 
-```plantuml
-@startuml
-skinparam classAttributeIconSize 0
-
-abstract class Veiculo {
-  # placa : string
-  # horaEntrada : time_point
-  + calcularTarifa(tempoMinutos: int) : float
-  + obterTipo() : string
-}
-
-class Carro {
-  + calcularTarifa(tempoMinutos: int) : float
-  + obterTipo() : string
-}
-
-class Moto {
-  - tarifaDeCarro : bool
-  + calcularTarifa(tempoMinutos: int) : float
-  + obterTipo() : string
-}
-
-Veiculo <|-- Carro
-Veiculo <|-- Moto
-
-class Vaga {
-  - numero : int
-  - tipoVaga : int
-  - ocupada : bool
-  + alocar(v: Veiculo)
-  + liberar() : Veiculo
-}
-
-Vaga o-- "0..1" Veiculo : veiculo
-
-abstract class EstrategiaAlocacao {
-  + encontrarVaga(vagas: array, placa: string, tipo: int) : Vaga
-}
-
-class EstrategiaVagaLivre {
-  + encontrarVaga(vagas: array, placa: string, tipo: int) : Vaga
-}
-
-EstrategiaAlocacao <|-- EstrategiaVagaLivre
-
-class Assinatura {
-  - tipo : Plano
-  - horasDisponiveis : int
-  - horasUsadas : int
-  + consumirHoras(horas: int)
-}
-
-class Cliente {
-  - placa : string
-  - nome : string
-  - isMensalista : bool
-}
-
-Cliente *-- "1" Assinatura : assinatura
-
-abstract class TarifaVeiculo {
-  + calcularCusto(tempoMinutos: int) : float
-}
-
-class TarifaComum {
-  - taxaHora : float
-  + calcularCusto(tempoMinutos: int) : float
-}
-
-class TarifaMensalista {
-  + calcularCusto(tempoMinutos: int) : float
-}
-
-TarifaVeiculo <|-- TarifaComum
-TarifaVeiculo <|-- TarifaMensalista
-TarifaMensalista --> "1" Cliente : cliente
-
-class Transacao {
-  - placa : string
-  - tipoVeiculo : string
-  - valorPago : float
-  - tempoMinutos : int
-}
-
-class Estacionamento {
-  + entradaVeiculo(placa: string, tipo: int) : string
-  + saidaVeiculo(placa: string) : string
-}
-
-Estacionamento *-- "80" Vaga : vagas
-Estacionamento *-- "1" EstrategiaAlocacao : estrategia
-Estacionamento *-- "*" Cliente : mensalistas
-Estacionamento *-- "*" Transacao : transacoes
-
-@enduml
-```
+<img src="class_diagram.png"
+     width="100%"
+     style="padding: 2px">
 
 ## Classes Identificadas
 
